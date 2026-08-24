@@ -8,39 +8,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Find my Telegram chat ID
-        id: find_chat
+      - name: Find Telegram chat ID
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: |
-          RESPONSE=$(curl -s \
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates")
+          RESPONSE=$(curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates")
+          echo "$RESPONSE"
 
-          CHAT_ID=$(echo "$RESPONSE" | jq -r '
-            .result
-            | map(select(.message.chat.id != null))
-            | last
-            | .message.chat.id
-          ')
+          CHAT_ID=$(echo "$RESPONSE" | jq -r '.result[-1].message.chat.id')
 
           if [ "$CHAT_ID" = "null" ] || [ -z "$CHAT_ID" ]; then
             echo "Telegram chat ID를 찾지 못했습니다."
-            echo "$RESPONSE"
             exit 1
           fi
 
-          echo "chat_id=$CHAT_ID" >> "$GITHUB_OUTPUT"
+          echo "CHAT_ID=$CHAT_ID" >> "$GITHUB_ENV"
 
       - name: Send test message
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ steps.find_chat.outputs.chat_id }}
         run: |
           curl -s -X POST \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d "chat_id=${CHAT_ID}" \
-            --data-urlencode "text=🎬 메가박스 예매 알림봇 테스트 성공!
-
-GitHub Actions와 Telegram 연결이 정상적으로 완료되었습니다.
-
-다음 단계에서 메가박스 오디세이 예매 감시 기능을 연결합니다. 🔔"
+            --data-urlencode "text=🎬 메가박스 예매 알림봇 테스트 성공! GitHub와 Telegram 연결이 정상적으로 완료되었습니다."
